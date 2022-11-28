@@ -1,6 +1,12 @@
 #ifndef GETOPT_H
 #define GETOPT_H
 
+enum {
+	no_argument = 0,
+	required_argument,
+	optional_argument
+};
+
 struct option {
 	const char *name;
 	int         has_arg;
