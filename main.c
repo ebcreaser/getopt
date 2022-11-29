@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 		if (longindex == -1) {
 			printf("%c\n", opt);
 		} else {
-			printf("%s\n", long_options[longindex].name);
+			printf("%c (--%s)\n", opt, long_options[longindex].name);
 		}
 		if (optarg != NULL) {
 			printf("\t%s\n", optarg);
