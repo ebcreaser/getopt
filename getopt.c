@@ -146,6 +146,7 @@ _getopt_long_core(int argc, char *const argv[],
 	if (is_long) {
 		opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar);
 	} else {
+		*longindex = -1;
 		opt = _handle_opt(argc, argv, optstring, &nextchar);
 	}
 
