@@ -120,6 +120,7 @@ _getopt_long_core(int argc, char *const argv[],
 {
 	static int nextchar = 0;
 	int opt = 0;
+	int is_long = 0;
 
 	if (optind < argc && argv[optind][nextchar] == '\0') {
 		++optind;
@@ -132,15 +133,21 @@ _getopt_long_core(int argc, char *const argv[],
 			}
 			if (argv[optind][0] == '-') {
 				if (argv[optind][1] == '-') {
+					is_long = 1;
 					nextchar = 2;
 					break;
 				}
+				is_long = 0;
 				nextchar = 1;
 				break;
 			}
 		}
 	}
-	opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar);
+	if (is_long) {
+		opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar);
+	} else {
+		opt = _handle_opt(argc, argv, &nextchar);
+	}
 
 	return opt;
 }
