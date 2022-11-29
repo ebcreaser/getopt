@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 	int opt = 0;
 	int longindex;
 
-	opt = getopt_long(argc, argv, optstring, long_options, &longindex);
+	opt = getopt_long_only(argc, argv, optstring, long_options, &longindex);
 	while (opt != -1) {
 		if (longindex == -1) {
 			printf("%c\n", opt);
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 		if (optarg != NULL) {
 			printf("\t%s\n", optarg);
 		}
-		opt = getopt_long(argc, argv, optstring, long_options, &longindex);
+		opt = getopt_long_only(argc, argv, optstring, long_options, &longindex);
 	}
 
 	return 0;

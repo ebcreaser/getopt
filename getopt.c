@@ -10,7 +10,8 @@ static int _getopt_long_core(int argc, char *const argv[],
 		int *longindex, int long_only);
 static int _handle_long_opt (int argc, char *const argv[],
 		const struct option *longopts,
-		int *longindex, int *nextchar);
+		int *longindex, int *nextchar,
+		int long_only);
 
 char *optarg = NULL;
 int optind = 1;
@@ -100,7 +101,6 @@ int getopt_long(int argc, char *const argv[],
 {
 	int opt;
 
-	*longindex = -1;
 	opt = _getopt_long_core(argc, argv, optstring, longopts, longindex, 0);
 
 	return opt;
@@ -110,7 +110,11 @@ int getopt_long_only(int argc, char *const argv[],
 		const char *optstring,
 		const struct option *longopts, int *longindex)
 {
-	return 0;
+	int opt;
+
+	opt = _getopt_long_core(argc, argv, optstring, longopts, longindex, 1);
+
+	return opt;
 }
 
 static int
@@ -121,8 +125,9 @@ _getopt_long_core(int argc, char *const argv[],
 {
 	static int nextchar = 0;
 	int opt = 0;
-	int is_long = 0;
+	int is_long;
 
+	*longindex = -1;
 	if (optind < argc && argv[optind][nextchar] == '\0') {
 		++optind;
 		nextchar = 0;
@@ -138,16 +143,18 @@ _getopt_long_core(int argc, char *const argv[],
 					nextchar = 2;
 					break;
 				}
-				is_long = 0;
+				is_long = long_only;
 				nextchar = 1;
 				break;
 			}
 		}
 	}
 	if (is_long) {
-		opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar);
+		opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar, long_only);
+		if (long_only && opt == '?') {
+			opt = _handle_opt(argc, argv, optstring, &nextchar);
+		}
 	} else {
-		*longindex = -1;
 		opt = _handle_opt(argc, argv, optstring, &nextchar);
 	}
 
@@ -157,11 +164,13 @@ _getopt_long_core(int argc, char *const argv[],
 static int 
 _handle_long_opt (int argc, char *const argv[],
 		const struct option *longopts,
-		int *longindex, int *nextchar)
+		int *longindex, int *nextchar,
+		int long_only)
 {
 	int opt;
-	int i;
 	int diff;
+	int i;
+	int j = 1;
 
 	optarg = NULL;
 	for (i = 0;; ++i) {
@@ -190,22 +199,26 @@ _handle_long_opt (int argc, char *const argv[],
 			if (longopts[i].has_arg == no_argument) {
 				break;
 			}
-			while (argv[optind][*nextchar] != '=') {
-				++(*nextchar);
+			while (argv[optind][*nextchar + j] != '=') {
+				++j;
 			}
-			++(*nextchar);
-			if (argv[optind][*nextchar] == '\0') {
+			++j;
+			if (argv[optind][*nextchar + j] == '\0') {
 				if (longopts[i].has_arg == required_argument) {
 					opt = '?';
 				}
 				break;
 			}
-			optarg = argv[optind] + *nextchar;
+			optarg = argv[optind] + *nextchar + j;
 			break;
 		}
 	}
-	++optind;
-	*nextchar = 0;
+	if (long_only && opt == '?') {
+		*longindex = -1;
+	} else {
+		++optind;
+		*nextchar = 0;
+	}
 
 	return opt;
 }
