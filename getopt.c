@@ -100,6 +100,7 @@ int getopt_long(int argc, char *const argv[],
 {
 	int opt;
 
+	*longindex = -1;
 	opt = _getopt_long_core(argc, argv, optstring, longopts, longindex, 0);
 
 	return opt;
