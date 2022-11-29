@@ -3,7 +3,7 @@
 #include "getopt.h"
 
 static int _handle_opt(int argc, char *const argv[],
-		const char *opt_ptr, int *nextchar_ptr);
+		const char *optstring, int *nextchar_ptr);
 static int _getopt_long_core(int argc, char *const argv[],
 		const char *optstring,
 		const struct option *longopts,
@@ -19,7 +19,6 @@ int
 getopt(int argc, char *const argv[], 
 		const char *optstring) 
 {
-	char *opt_ptr;
 	static int nextchar = 0;
 	int opt = 0;
 
@@ -41,18 +40,19 @@ getopt(int argc, char *const argv[],
 		}
 		nextchar = 1;
 	}
-	opt_ptr = strchr(optstring, argv[optind][nextchar]);
-	opt = _handle_opt(argc, argv, opt_ptr, &nextchar);
+	opt = _handle_opt(argc, argv, optstring, &nextchar);
 
 	return opt;
 }
 
 static int
 _handle_opt(int argc, char *const argv[],
-		const char *opt_ptr, int *nextchar_ptr)
+		const char *optstring, int *nextchar_ptr)
 {
+	char *opt_ptr;
 	int opt = 0;
 
+	opt_ptr = strchr(optstring, argv[optind][*nextchar_ptr]);
 	optarg = NULL;
 	if (opt_ptr == NULL) {
 		++(*nextchar_ptr);
@@ -146,7 +146,7 @@ _getopt_long_core(int argc, char *const argv[],
 	if (is_long) {
 		opt = _handle_long_opt(argc, argv, longopts, longindex, &nextchar);
 	} else {
-		opt = _handle_opt(argc, argv, &nextchar);
+		opt = _handle_opt(argc, argv, optstring, &nextchar);
 	}
 
 	return opt;
