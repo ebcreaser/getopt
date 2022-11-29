@@ -178,6 +178,9 @@ _handle_long_opt (int argc, char *const argv[],
 		} else if (diff == '=') {
 			*longindex = i;
 			opt = longopts[i].val;
+			if (longopts[i].has_arg == no_argument) {
+				break;
+			}
 			while (argv[optind][*nextchar] != '=') {
 				++(*nextchar);
 			}
