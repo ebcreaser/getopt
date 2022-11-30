@@ -62,33 +62,33 @@ _handle_opt(int argc, char *const argv[],
 	optarg = NULL;
 	++(*nextchar_ptr);
 	if (opt_ptr == NULL) {
-		return '?';
-	}
-	if (opt_ptr[1] != ':') {
-		return *opt_ptr;
-	}
-	switch (argv[optind][*nextchar_ptr]) {
-	case '\0':
-		if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
-			if (opt_ptr[2] != ':') {
-				opt = '?';
+		opt = '?';
+	} else if (opt_ptr[1] != ':') {
+		opt = *opt_ptr;
+	} else {
+		switch (argv[optind][*nextchar_ptr]) {
+		case '\0':
+			if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
+				if (opt_ptr[2] != ':') {
+					opt = '?';
+				}
+				break;
 			}
+			optarg = argv[optind + 1];
+			break;
+		case '=':
+			if (argv[optind][*nextchar_ptr + 1] == '\0') {
+				if (opt_ptr[2] != ':') {
+					opt = '?';
+				}
+				break;
+			}
+			optarg = argv[optind] + *nextchar_ptr + 1;
+			break;
+		default:
+			optarg = argv[optind] + *nextchar_ptr;
 			break;
 		}
-		optarg = argv[optind + 1];
-		break;
-	case '=':
-		if (argv[optind][*nextchar_ptr + 1] == '\0') {
-			if (opt_ptr[2] != ':') {
-				opt = '?';
-			}
-			break;
-		}
-		optarg = argv[optind] + *nextchar_ptr + 1;
-		break;
-	default:
-		optarg = argv[optind] + *nextchar_ptr;
-		break;
 	}
 	if (argv[optind][*nextchar_ptr] == '\0' && optarg != NULL) {
 		_next_arg(argv, swapind_ptr, nextchar_ptr);
