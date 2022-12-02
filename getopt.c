@@ -10,15 +10,15 @@ static int _getopt_long_core(int argc, char *const argv[],
 		int *longindex, int long_only);
 static int _handle_long_opt(int argc, char *const argv[],
 		const struct option *longopts,
-		int *longindex, int long_only);
+		int *longindex);
 static void _next_arg(char *const argv[]);
 static void _permute(char *const argv[]);
 
-static int nextchar = 0;
-static int swapind = 0;
-
 char *optarg = NULL;
 int optind = 1;
+static int swapind = 0;
+static int nextchar = 0;
+
 
 int 
 getopt(int argc, char *const argv[], 
@@ -26,24 +26,27 @@ getopt(int argc, char *const argv[],
 {
 	int opt = 0;
 
-	while (nextchar == 0 && optind < argc) {
-		if (argv[optind][0] == '-') {
-			if (argv[optind][1] == '-') {
-				_next_arg(argv);
-			} else if (argv[optind][1] != '\0') {
-				nextchar = 1;
-				break;
+	if (nextchar == 0) {
+		while (optind < argc) {
+			if (argv[optind][0] == '-') {
+				if (argv[optind][1] == '-') {
+					_next_arg(argv);
+				} else {
+					nextchar = 1;
+					break;
+				}
+			} else {
+				if (swapind == 0) {
+					swapind = optind;
+				}
+				++optind;
 			}
-		} else if (swapind == 0) {
-			swapind = optind;
 		}
-		++optind;
 	}
 	if (optind >= argc) {
 		return -1;
 	}
 	opt = _handle_opt(argc, argv, optstring);
-
 
 	return opt;
 }
@@ -129,38 +132,36 @@ _getopt_long_core(int argc, char *const argv[],
 		int *longindex, int long_only)
 {
 	int opt = 0;
-	int is_long;
 
 	*longindex = -1;
-	if (optind < argc && argv[optind][nextchar] == '\0') {
-		++optind;
-		nextchar = 0;
-	}
 	if (nextchar == 0) {
-		for (;; ++optind) {
-			if (optind >= argc) {
-				return -1;
-			}
+		while (optind < argc) {
 			if (argv[optind][0] == '-') {
 				if (argv[optind][1] == '-') {
-					is_long = 1;
 					nextchar = 2;
 					break;
+				} else {
+					nextchar = 1;
+					break;
 				}
-				is_long = long_only;
-				nextchar = 1;
-				break;
-			}
-			if (swapind == 0) {
-				swapind = optind;
+			} else {
+				if (swapind == 0) {
+					swapind = optind;
+				}
+				++optind;
 			}
 		}
 	}
-	if (is_long) {
-		opt = _handle_long_opt(argc, argv, longopts, longindex, long_only);
-		if (long_only && opt == '?') {
+	if (optind >= argc) {
+		return -1;
+	}
+	if (long_only && nextchar == 1) {
+		opt = _handle_long_opt(argc, argv, longopts, longindex);
+		if (nextchar > 0) {
 			opt = _handle_opt(argc, argv, optstring);
 		}
+	} else if (argv[optind][1] == '-') {
+		opt = _handle_long_opt(argc, argv, longopts, longindex);
 	} else {
 		opt = _handle_opt(argc, argv, optstring);
 	}
@@ -171,7 +172,7 @@ _getopt_long_core(int argc, char *const argv[],
 static int 
 _handle_long_opt (int argc, char *const argv[],
 		const struct option *longopts,
-		int *longindex, int long_only)
+		int *longindex)
 {
 	int opt;
 	int diff;
@@ -185,27 +186,27 @@ _handle_long_opt (int argc, char *const argv[],
 			break;
 		}
 		diff = strcmp(argv[optind] + nextchar, longopts[i].name);
-		if (diff == 0) {
-			*longindex = i;
-			opt = longopts[i].val;
-			if (longopts[i].has_arg == no_argument) {
-				break;
-			}
+		if (diff == 0 || diff == '=') {
+			break;
+		}
+	}
+	if (diff == 0) {
+		*longindex = i;
+		opt = longopts[i].val;
+		if (longopts[i].has_arg != no_argument) {
 			if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
 				if (longopts[i].has_arg == required_argument) {
 					opt = '?';
 				}
-				break;
+			} else {
+				nextchar = 0;
+				optarg = argv[optind + 1];
 			}
-			nextchar = 0;
-			optarg = argv[optind + 1];
-			break;
-		} else if (diff == '=') {
-			*longindex = i;
-			opt = longopts[i].val;
-			if (longopts[i].has_arg == no_argument) {
-				break;
-			}
+		}
+	} else if (diff == '=') {
+		*longindex = i;
+		opt = longopts[i].val;
+		if (longopts[i].has_arg != no_argument) {
 			while (argv[optind][nextchar + j] != '=') {
 				++j;
 			}
@@ -214,19 +215,16 @@ _handle_long_opt (int argc, char *const argv[],
 				if (longopts[i].has_arg == required_argument) {
 					opt = '?';
 				}
-				break;
+			} else {
+				nextchar += j;
+				optarg = argv[optind] + nextchar;
 			}
-			nextchar += j;
-			optarg = argv[optind] + nextchar;
-			break;
 		}
 	}
-	if (long_only && opt == '?') {
-		*longindex = -1;
-	} else {
-		if (nextchar == 0) {
-			_next_arg(argv);
-		}
+	if (nextchar == 0) {
+		_next_arg(argv);
+	}
+	if (opt != '?' || nextchar != 1) {
 		_next_arg(argv);
 	}
 
@@ -235,7 +233,7 @@ _handle_long_opt (int argc, char *const argv[],
 
 static void _next_arg(char *const argv[])
 {
-	if (swapind > 0) {
+	if (swapind > 0 && swapind != optind) {
 		_permute(argv);
 	}
 	++optind;

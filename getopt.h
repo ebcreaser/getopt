@@ -14,9 +14,6 @@ struct option {
 	int         val;
 };
 
-extern char *optarg;
-extern int optind, opterr, optopt;
-
 int getopt(int argc, char *const argv[], 
 		const char *optstring);
 int getopt_long(int argc, char *const argv[],
@@ -25,5 +22,8 @@ int getopt_long(int argc, char *const argv[],
 int getopt_long_only(int argc, char *const argv[],
 		const char *optstring,
 		const struct option *longopts, int *longindex);
+
+extern char *optarg;
+extern int optind;
 
 #endif

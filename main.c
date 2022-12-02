@@ -2,6 +2,7 @@
 #include "getopt.h"
 
 int main(int argc, char *argv[]) {
+	extern char *optarg;
 	static struct option long_options[] = {
 		{"add",     required_argument, 0,  0 },
 		{"append",  no_argument,       0,  0 },
