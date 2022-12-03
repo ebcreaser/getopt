@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 		{"file",    required_argument, 0,  0 },
 		{0,         0,                 0,  0 }
 	};
-	const char *optstring = "ab::c:";
+	const char *optstring = "-ab::c:";
 	int opt = 0;
 	int longindex;
 	int i;

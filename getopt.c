@@ -2,6 +2,12 @@
 #include <string.h>
 #include "getopt.h"
 
+enum {
+	permute = 0,
+	stop,
+	treat_as_option
+};
+
 static int _handle_opt(int argc, char *const argv[],
 		const char *optstring);
 static int _getopt_long_core(int argc, char *const argv[],
@@ -11,6 +17,7 @@ static int _getopt_long_core(int argc, char *const argv[],
 static int _handle_long_opt(int argc, char *const argv[],
 		const struct option *longopts,
 		int *longindex);
+static int _get_nonopt_handling (const char *optstring);
 static void _next_arg(char *const argv[]);
 static void _permute(char *const argv[]);
 
@@ -19,13 +26,25 @@ int optind = 1;
 static int swapind = 0;
 static int nextchar = 0;
 
-
 int 
 getopt(int argc, char *const argv[], 
 		const char *optstring) 
 {
 	int opt = 0;
+	static int nonopt_handling = -1;
+	static int i;
 
+	if (optind >= argc) {
+		return -1;
+	}
+	if (nonopt_handling < 0) {
+		nonopt_handling = _get_nonopt_handling(optstring);
+		i = (nonopt_handling > 0);
+	}
+	optarg = NULL;
+	if (argv[optind][nextchar] == '\0') {
+		_next_arg(argv);
+	}
 	if (nextchar == 0) {
 		while (optind < argc) {
 			if (argv[optind][0] == '-') {
@@ -36,17 +55,26 @@ getopt(int argc, char *const argv[],
 					break;
 				}
 			} else {
-				if (swapind == 0) {
-					swapind = optind;
+				switch (nonopt_handling) {
+				case permute:
+					if (swapind == 0) {
+						swapind = optind;
+					}
+					++optind;
+					break;
+				case treat_as_option:
+					++optind;
+					return 1;
+				case stop:
+					return -1;
 				}
-				++optind;
 			}
 		}
 	}
 	if (optind >= argc) {
 		return -1;
 	}
-	opt = _handle_opt(argc, argv, optstring);
+	opt = _handle_opt(argc, argv, optstring + i);
 
 	return opt;
 }
@@ -57,48 +85,44 @@ _handle_opt(int argc, char *const argv[],
 {
 	char *opt_ptr;
 	int opt = 0;
+	static char errchar = 0;
+	static int i = 0;
 
-	opt_ptr = strchr(optstring, argv[optind][nextchar]);
-	optarg = NULL;
-	++(nextchar);
-	if (opt_ptr == NULL) {
-		opt = '?';
-	} else if (opt_ptr[1] != ':') {
-		opt = *opt_ptr;
-	} else {
-		switch (argv[optind][nextchar]) {
-		case '\0':
-			if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
-				if (opt_ptr[2] != ':') {
-					opt = '?';
-				}
-				break;
-			}
-			optarg = argv[optind + 1];
-			break;
-		case '=':
-			if (argv[optind][nextchar + 1] == '\0') {
-				if (opt_ptr[2] != ':') {
-					opt = '?';
-				}
-				break;
-			}
-			optarg = argv[optind] + nextchar + 1;
-			break;
-		default:
-			optarg = argv[optind] + nextchar;
-			break;
+	if (errchar == 0) {
+		if (optstring[0] == ':') {
+			errchar = ':';
+			i = 1;
+		} else {
+			errchar = '?';
 		}
 	}
-	if (argv[optind][nextchar] == '\0' && optarg != NULL) {
-		_next_arg(argv);
-		_next_arg(argv);
-	} else if (argv[optind][nextchar] == '\0' || optarg != NULL) {
-		_next_arg(argv);
+	opt_ptr = strchr(optstring + i, argv[optind][nextchar]);
+	++nextchar;
+	if (opt_ptr == NULL) {
+		return '?';
 	}
-	if (opt != '?') {
-		opt = *opt_ptr;
+	if (opt_ptr[1] != ':') {
+		return *opt_ptr;
 	}
+	switch (argv[optind][nextchar]) {
+	case '\0':
+		if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
+			break;
+		}
+		optarg = argv[optind + 1];
+		break;
+	case '=':
+		if (argv[optind][nextchar + 1] == '\0') {
+			break;
+		}
+		optarg = argv[optind] + nextchar + 1;
+		break;
+	default:
+		optarg = argv[optind] + nextchar;
+		break;
+	}
+	opt = (optarg == NULL && opt_ptr[2] != ':') ? errchar : *opt_ptr;
+	_next_arg(argv);
 
 	return opt;
 }
@@ -132,23 +156,44 @@ _getopt_long_core(int argc, char *const argv[],
 		int *longindex, int long_only)
 {
 	int opt = 0;
+	static int nonopt_handling = -1;
+	static int i;
 
+	if (optind >= argc) {
+		return -1;
+	}
+	if (nonopt_handling < 0) {
+		nonopt_handling = _get_nonopt_handling(optstring);
+		i = (nonopt_handling > 0);
+	}
+	if (argv[optind][nextchar] == '\0') {
+		_next_arg(argv);
+	}
+	optarg = NULL;
 	*longindex = -1;
 	if (nextchar == 0) {
 		while (optind < argc) {
 			if (argv[optind][0] == '-') {
 				if (argv[optind][1] == '-') {
 					nextchar = 2;
-					break;
 				} else {
 					nextchar = 1;
-					break;
 				}
+				break;
 			} else {
-				if (swapind == 0) {
-					swapind = optind;
+				switch (nonopt_handling) {
+				case permute:
+					if (swapind == 0) {
+						swapind = optind;
+					}
+					++optind;
+					break;
+				case treat_as_option:
+					++optind;
+					return 1;
+				case stop:
+					return -1;
 				}
-				++optind;
 			}
 		}
 	}
@@ -157,13 +202,13 @@ _getopt_long_core(int argc, char *const argv[],
 	}
 	if (long_only && nextchar == 1) {
 		opt = _handle_long_opt(argc, argv, longopts, longindex);
-		if (nextchar > 0) {
-			opt = _handle_opt(argc, argv, optstring);
+		if (*longindex == -1) {
+			opt = _handle_opt(argc, argv, optstring + i);
 		}
 	} else if (argv[optind][1] == '-') {
 		opt = _handle_long_opt(argc, argv, longopts, longindex);
 	} else {
-		opt = _handle_opt(argc, argv, optstring);
+		opt = _handle_opt(argc, argv, optstring + i);
 	}
 
 	return opt;
@@ -201,6 +246,7 @@ _handle_long_opt (int argc, char *const argv[],
 			} else {
 				nextchar = 0;
 				optarg = argv[optind + 1];
+				_next_arg(argv);
 			}
 		}
 	} else if (diff == '=') {
@@ -221,14 +267,24 @@ _handle_long_opt (int argc, char *const argv[],
 			}
 		}
 	}
-	if (nextchar == 0) {
-		_next_arg(argv);
-	}
-	if (opt != '?' || nextchar != 1) {
+	if (nextchar != 1 || *longindex > -1) {
 		_next_arg(argv);
 	}
 
 	return opt;
+}
+
+static int 
+_get_nonopt_handling (const char *optstring)
+{
+	switch (optstring[0]) {
+	case '+':
+		return stop;
+	case '-':
+		return treat_as_option;
+	default:
+		return permute;
+	}
 }
 
 static void _next_arg(char *const argv[])
