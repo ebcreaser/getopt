@@ -237,7 +237,12 @@ _handle_long_opt (int argc, char *const argv[],
 	}
 	if (diff == 0) {
 		*longindex = i;
-		opt = longopts[i].val;
+		if (longopts[i].flag == NULL) {
+			opt = longopts[i].val;
+		} else {
+			opt = 0;
+			*longopts[i].flag = longopts[i].val;
+		}
 		if (longopts[i].has_arg != no_argument) {
 			if (optind + 1 >= argc || argv[optind + 1][0] == '-') {
 				if (longopts[i].has_arg == required_argument) {
