@@ -12,12 +12,12 @@ int main(int argc, char *argv[]) {
 		{"file",    required_argument, 0,  0 },
 		{0,         0,                 0,  0 }
 	};
-	const char *optstring = "-ab::c:";
+	const char *optstring = "ab::c:";
 	int opt = 0;
 	int longindex;
 	int i;
 
-	opt = getopt_long_only(argc, argv, optstring, long_options, &longindex);
+	opt = getopt_long(argc, argv, optstring, long_options, &longindex);
 	while (opt != -1) {
 		if (longindex == -1) {
 			printf("%c\n", opt);
